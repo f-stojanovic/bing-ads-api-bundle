@@ -9,8 +9,7 @@
         "microsoft/bingads": "^13.0",
         "league/csv": "^9.0",
         "ext-zip": "*",
-        "ext-curl": "*",
-        "ext-soap": "*"
+        "ext-curl": "*"
     },
     "autoload": {
         "psr-4": {
