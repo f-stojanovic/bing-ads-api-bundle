@@ -2,7 +2,7 @@
     "name": "coddict/bing-ads-api-bundle",
     "description": "A reusable Symfony bundle for Bing Ads API integration.",
     "minimum-stability": "stable",
-    "type": "library",
+    "type": "symfony-bundle",
     "license": "proprietary",
     "require": {
         "microsoft/bingads": "^13.0",
