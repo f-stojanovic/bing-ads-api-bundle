@@ -1,16 +1,18 @@
 <?php
 
-namespace Coddict\BingAdsApiBundle;
+namespace Coddict\BingAdsApiBundle\Service\Authentication;
 
-use Microsoft\BingAds\Auth\OAuthDesktopMobileAuthCodeGrant;
+use Coddict\BingAdsApiBundle\Config;
+use Coddict\BingAdsApiBundle\CustomerManagement;
 use Microsoft\BingAds\Auth\AuthorizationData;
+use Microsoft\BingAds\Auth\OAuthDesktopMobileAuthCodeGrant;
 use Microsoft\BingAds\Auth\OAuthTokenRequestException;
 use Microsoft\BingAds\Auth\ServiceClient;
 use Microsoft\BingAds\Auth\ServiceClientType;
-use Microsoft\BingAds\V13\CustomerManagement\SearchAccountsRequest;
 use Microsoft\BingAds\V13\CustomerManagement\Paging;
 use Microsoft\BingAds\V13\CustomerManagement\Predicate;
 use Microsoft\BingAds\V13\CustomerManagement\PredicateOperator;
+use Microsoft\BingAds\V13\CustomerManagement\SearchAccountsRequest;
 
 final class Auth
 {

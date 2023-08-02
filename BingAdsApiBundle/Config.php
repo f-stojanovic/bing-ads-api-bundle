@@ -5,6 +5,9 @@ namespace Coddict\BingAdsApiBundle;
 use Microsoft\BingAds\Auth\ApiEnvironment;
 use Microsoft\BingAds\Auth\OAuthScope;
 
+/**
+ * Should be deleted, we moved this to bing_ads_api.yaml file
+ */
 final class Config
 {
     // const DeveloperToken = '110AE62Y43928768';

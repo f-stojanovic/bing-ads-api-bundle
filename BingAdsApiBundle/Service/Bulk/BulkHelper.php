@@ -1,7 +1,8 @@
 <?php
 
-namespace Coddict\BingAdsApiBundle;
+namespace Coddict\BingAdsApiBundle\Service\Bulk;
 
+use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
 use Microsoft\BingAds\V13\Bulk\GetBulkDownloadStatusRequest;
 use Microsoft\BingAds\V13\Bulk\GetBulkUploadStatusRequest;
 use Microsoft\BingAds\V13\Bulk\GetBulkUploadUrlRequest;

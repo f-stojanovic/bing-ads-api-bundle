@@ -1,25 +1,37 @@
 <?php
 
-namespace Coddict\BingAdsApiBundle;
+namespace Coddict\BingAdsApiBundle\Service\Customer;
 
-use Coddict\BingAdsApiBundle\BulkHelper;
+use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
+use Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper;
+use Coddict\BingAdsApiBundle\SoapFault;
 use Exception;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Microsoft\BingAds\V13\Bulk\ResponseMode;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use ZipArchive;
 
 class CustomerListHelper
 {
     const DEBUG = true;
 
-    public function __construct()
+    private ?Auth $auth;
+    private readonly ContainerInterface $container;
+
+    private function getAuth(): Auth
     {
-        Auth::Authenticate();   
+        if (!$this->auth) {
+            $this->auth = new Auth();
+            $this->auth->Authenticate();
+        }
+        return $this->auth;
     }
 
     public function AddEmailsToBingAdsList(array $emails, $listId)
     {
+        $this->getAuth();
+
         if (empty($emails)) {
             return;
         }
@@ -44,6 +56,8 @@ class CustomerListHelper
 
     public function RemoveEmailsFomBingAdsList(array $emails, $listId)
     {
+        $this->getAuth();
+
         if (empty($emails)) {
             return;
         }
@@ -70,12 +84,13 @@ class CustomerListHelper
     private function UploadDataToBing(string $type, array $header, array $records)
     {
         try {
-            $csv = Writer::createFromPath(__DIR__ . "/../storage/emails_to_{$type}.csv", 'w');
+            $uploadDirectory = $this->container->getParameter('bing_ads_api.upload_directory');
+            $csv = Writer::createFromPath($uploadDirectory . "/emails_to_{$type}.csv", 'w');
             $csv->insertOne($header);
             $csv->insertAll($records);
 
-            $bulkFilePath = __DIR__ . "/../storage/emails_to_{$type}.zip";
-            $this->CompressFile(__DIR__ . "/../storage/emails_to_{$type}.csv", $bulkFilePath);
+            $bulkFilePath = $uploadDirectory . "/emails_to_{$type}.zip";
+            $this->CompressFile($uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
             
             $responseMode = ResponseMode::ErrorsAndResults;
             $uploadResponse = BulkHelper::GetBulkUploadUrl(
@@ -96,7 +111,7 @@ class CustomerListHelper
             $uploadSuccess = $this->UploadFile($uploadUrl, $bulkFilePath);
             
             // If the file was not uploaded, do not continue to poll for results.
-            if ($uploadSuccess == false){
+            if (!$uploadSuccess){
                 throw new Exception('Upload failed');
                 return;
             }

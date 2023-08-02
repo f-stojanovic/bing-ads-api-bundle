@@ -1,0 +1,10 @@
+# config/packages/bing_ads_api.yaml
+bing_ads_api:
+  developer_token: '%env(BING_ADS_DEVELOPER_TOKEN)%'
+  api_environment: 'production'
+  oauth_scope: 'msads_manage'
+  oauth_refresh_token_path: 'refresh.txt'
+  client_id: '%env(BING_ADS_CLIENT_ID)%'
+  client_secret: '%env(BING_ADS_CLIENT_SECRET)%'
+  audience_id: 818044107
+  upload_directory: 'storage'

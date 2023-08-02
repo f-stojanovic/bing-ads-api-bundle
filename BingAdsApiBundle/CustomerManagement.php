@@ -2,6 +2,7 @@
 
 namespace Coddict\BingAdsApiBundle;
 
+use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
 use Microsoft\BingAds\V13\CustomerManagement\GetUserRequest;
 
 class CustomerManagement
@@ -17,5 +18,6 @@ class CustomerManagement
         $request->UserId = $userId;
 
         return Auth::$CustomerManagementProxy->GetService()->GetUser($request);
+
     }
 }
