@@ -95,19 +95,19 @@ final class Auth
             ->withDeveloperToken(Config::DeveloperToken);
 
         try {
-            $refreshToken = self::readOAuthRefreshToken();
+            $refreshToken = $this->readOAuthRefreshToken();
 
             if ($refreshToken != null)  {
                 self::$AuthorizationData->Authentication->requestOAuthTokensByRefreshToken($refreshToken);
-                self::writeOAuthRefreshToken(
+                $this->writeOAuthRefreshToken(
                     self::$AuthorizationData->Authentication->OAuthTokens->RefreshToken
                 );
             }
             else {
-                self::requestUserConsent();
+                $this->requestUserConsent();
             }            
         } catch(OAuthTokenRequestException $e) {
-            self::requestUserConsent();
+            $this->requestUserConsent();
         }
     }
 
@@ -123,30 +123,40 @@ final class Auth
         print "\n";
 
         self::$AuthorizationData->Authentication->requestOAuthTokensByResponseUri(trim($responseUri));
-        self::writeOAuthRefreshToken(self::$AuthorizationData->Authentication->OAuthTokens->RefreshToken);
+        $this->writeOAuthRefreshToken(self::$AuthorizationData->Authentication->OAuthTokens->RefreshToken);
     }
 
-    public function readOAuthRefreshToken(): bool|string|null
+    public function readOAuthRefreshToken(): ?string
     {
         $refreshToken = null;
-        
-        if (file_exists(Config::OAuthRefreshTokenPath) && filesize(Config::OAuthRefreshTokenPath) > 0) {
-            $refreshTokenfile = @\fopen(Config::OAuthRefreshTokenPath, "r");
-            $refreshToken = fread($refreshTokenfile, filesize(Config::OAuthRefreshTokenPath));
-            fclose($refreshTokenfile);
+
+        try {
+            if (file_exists(Config::OAuthRefreshTokenPath) && filesize(Config::OAuthRefreshTokenPath) > 0) {
+                $refreshTokenfile = fopen(Config::OAuthRefreshTokenPath, "r");
+                $refreshToken = fread($refreshTokenfile, filesize(Config::OAuthRefreshTokenPath));
+                fclose($refreshTokenfile);
+            }
+        } catch (\Throwable $e) {
+            var_dump($e);
+            echo $e->getMessage();
         }
 
         return $refreshToken;
     }
 
-    public function writeOAuthRefreshToken($refreshToken): void
-    {        
-        $refreshTokenfile = @\fopen(Config::OAuthRefreshTokenPath, "wb");
-        if (file_exists(Config::OAuthRefreshTokenPath)) {
-            fwrite($refreshTokenfile, $refreshToken);
-            fclose($refreshTokenfile);
+    public function writeOAuthRefreshToken(string $refreshToken): void
+    {
+        try {
+            $refreshTokenFile = fopen(Config::OAuthRefreshTokenPath, "wb");
+            if ($refreshTokenFile !== false) {
+                fwrite($refreshTokenFile, $refreshToken);
+                fclose($refreshTokenFile);
+            } else {
+                throw new \Exception("Failed to open the refresh token file for writing.");
+            }
+        } catch (\Throwable $e) {
+            var_dump($e);
+            echo $e->getMessage();
         }
-
-        return;
     }
 }

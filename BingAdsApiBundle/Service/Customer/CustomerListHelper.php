@@ -28,7 +28,7 @@ class CustomerListHelper
         return $this->auth;
     }
 
-    public function addEmailsToBingAdsList(array $emails, $listId)
+    public function addEmailsToBingAdsList(array $emails, $listId): void
     {
         $this->getAuth();
 
@@ -54,7 +54,7 @@ class CustomerListHelper
         $this->uploadDataToBing('add', $header, $records);
     }
 
-    public function removeEmailsFomBingAdsList(array $emails, $listId)
+    public function removeEmailsFomBingAdsList(array $emails, $listId): void
     {
         $this->getAuth();
 
@@ -81,7 +81,7 @@ class CustomerListHelper
         $this->uploadDataToBing('remove', $header, $records);
     }
 
-    private function uploadDataToBing(string $type, array $header, array $records)
+    private function uploadDataToBing(string $type, array $header, array $records): void
     {
         try {
             $uploadDirectory = $this->container->getParameter('bing_ads_api.upload_directory');
@@ -198,7 +198,7 @@ class CustomerListHelper
         }
     }
 
-    private function decompressFile($fromZipArchive, $toExtractedFile)
+    private function decompressFile($fromZipArchive, $toExtractedFile): void
     {
         $archive = new ZipArchive;
 
@@ -211,7 +211,8 @@ class CustomerListHelper
         }
     }
 
-    private function compressFile($fromExtractedFile, $toZipArchive) {
+    private function compressFile($fromExtractedFile, $toZipArchive): void
+    {
         $archive = new ZipArchive;
 
         if ($archive->open($toZipArchive, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
@@ -223,7 +224,8 @@ class CustomerListHelper
         }
     }
 
-    private function downloadFile($downloadUrl, $filePath) {
+    private function downloadFile($downloadUrl, $filePath): void
+    {
         if (!$reader = fopen($downloadUrl, 'rb')) {
             throw new Exception("Failed to open URL " . $downloadUrl . ".");
         }
@@ -254,7 +256,8 @@ class CustomerListHelper
         fclose($writer);
     }
     
-    private function uploadFile($uploadUrl, $filePath) {
+    private function uploadFile($uploadUrl, $filePath): bool
+    {
         date_default_timezone_set("UTC");
         $ch = curl_init($uploadUrl);
     
