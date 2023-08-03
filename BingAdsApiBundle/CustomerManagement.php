@@ -7,7 +7,7 @@ use Microsoft\BingAds\V13\CustomerManagement\GetUserRequest;
 
 class CustomerManagement
 {
-    static function GetUser($userId)
+    static function getUser($userId)
     {
         Auth::$CustomerManagementProxy->SetAuthorizationData(Auth::$AuthorizationData);
 

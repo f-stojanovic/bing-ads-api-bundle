@@ -23,12 +23,12 @@ class CustomerListHelper
     {
         if (!$this->auth) {
             $this->auth = new Auth();
-            $this->auth->Authenticate();
+            $this->auth->authenticate();
         }
         return $this->auth;
     }
 
-    public function AddEmailsToBingAdsList(array $emails, $listId)
+    public function addEmailsToBingAdsList(array $emails, $listId)
     {
         $this->getAuth();
 
@@ -51,10 +51,10 @@ class CustomerListHelper
 
         $records = array_merge($records, $customerListItems);
 
-        $this->UploadDataToBing('add', $header, $records);
+        $this->uploadDataToBing('add', $header, $records);
     }
 
-    public function RemoveEmailsFomBingAdsList(array $emails, $listId)
+    public function removeEmailsFomBingAdsList(array $emails, $listId)
     {
         $this->getAuth();
 
@@ -78,10 +78,10 @@ class CustomerListHelper
 
         $records = array_merge($records, $listItemToDelete);
 
-        $this->UploadDataToBing('remove', $header, $records);
+        $this->uploadDataToBing('remove', $header, $records);
     }
 
-    private function UploadDataToBing(string $type, array $header, array $records)
+    private function uploadDataToBing(string $type, array $header, array $records)
     {
         try {
             $uploadDirectory = $this->container->getParameter('bing_ads_api.upload_directory');
@@ -90,10 +90,10 @@ class CustomerListHelper
             $csv->insertAll($records);
 
             $bulkFilePath = $uploadDirectory . "/emails_to_{$type}.zip";
-            $this->CompressFile($uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
+            $this->compressFile($uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
             
             $responseMode = ResponseMode::ErrorsAndResults;
-            $uploadResponse = BulkHelper::GetBulkUploadUrl(
+            $uploadResponse = BulkHelper::getBulkUploadUrl(
                 $responseMode,
                 Auth::$AuthorizationData->AccountId
             );
@@ -108,7 +108,7 @@ class CustomerListHelper
                 printf("-----\r\nUploading file from %s.\r\n", $bulkFilePath);  
             }
             
-            $uploadSuccess = $this->UploadFile($uploadUrl, $bulkFilePath);
+            $uploadSuccess = $this->uploadFile($uploadUrl, $bulkFilePath);
             
             // If the file was not uploaded, do not continue to poll for results.
             if (!$uploadSuccess){
@@ -125,7 +125,7 @@ class CustomerListHelper
                 sleep($waitTime);
                 
                 // Get the upload request status.
-                $getBulkUploadStatusResponse = BulkHelper::GetBulkUploadStatus(
+                $getBulkUploadStatusResponse = BulkHelper::getBulkUploadStatus(
                     $uploadRequestId
                 );
 
@@ -153,13 +153,13 @@ class CustomerListHelper
                     printf("-----\r\nDownloading the upload result file from %s...\r\n", $resultFileUrl);
                 }
 
-                $this->DownloadFile($resultFileUrl, $uploadResultFilePath);
+                $this->downloadFile($resultFileUrl, $uploadResultFilePath);
 
                 if (self::DEBUG) {
                     printf("The upload result file was written to %s.\r\n", $uploadResultFilePath);
                 }
 
-                $this->DecompressFile($uploadResultFilePath, __DIR__ . "/../storage/results_{$type}.csv");
+                $this->decompressFile($uploadResultFilePath, __DIR__ . "/../storage/results_{$type}.csv");
 
                 $files = glob(__DIR__ . "/../storage/*.csv");
 
@@ -198,7 +198,7 @@ class CustomerListHelper
         }
     }
 
-    private function DecompressFile($fromZipArchive, $toExtractedFile)
+    private function decompressFile($fromZipArchive, $toExtractedFile)
     {
         $archive = new ZipArchive;
 
@@ -211,7 +211,7 @@ class CustomerListHelper
         }
     }
 
-    private function CompressFile($fromExtractedFile, $toZipArchive) {
+    private function compressFile($fromExtractedFile, $toZipArchive) {
         $archive = new ZipArchive;
 
         if ($archive->open($toZipArchive, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
@@ -223,7 +223,7 @@ class CustomerListHelper
         }
     }
 
-    private function DownloadFile($downloadUrl, $filePath) {
+    private function downloadFile($downloadUrl, $filePath) {
         if (!$reader = fopen($downloadUrl, 'rb')) {
             throw new Exception("Failed to open URL " . $downloadUrl . ".");
         }
@@ -254,7 +254,7 @@ class CustomerListHelper
         fclose($writer);
     }
     
-    private function UploadFile($uploadUrl, $filePath) {
+    private function uploadFile($uploadUrl, $filePath) {
         date_default_timezone_set("UTC");
         $ch = curl_init($uploadUrl);
     
