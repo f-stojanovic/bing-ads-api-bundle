@@ -2,50 +2,78 @@
 
 namespace Coddict\BingAdsApiBundle\Service\Bulk;
 
-use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
+use Exception;
+use Microsoft\BingAds\Auth\AuthorizationData;
+use Microsoft\BingAds\Auth\ServiceClient;
 use Microsoft\BingAds\V13\Bulk\GetBulkDownloadStatusRequest;
 use Microsoft\BingAds\V13\Bulk\GetBulkUploadStatusRequest;
 use Microsoft\BingAds\V13\Bulk\GetBulkUploadUrlRequest;
+use Microsoft\BingAds\V13\Bulk\ResponseMode;
 
 final class BulkHelper 
 {
-    public function getBulkDownloadStatus($requestId)
+    public function __construct(
+        private readonly AuthorizationData $authorizationData,
+        private readonly ServiceClient     $bulkProxy
+    ) { }
+
+    /**
+     * @param string $requestId
+     * @return mixed
+     * @throws Exception
+     */
+    public function getBulkDownloadStatus(string $requestId): mixed
     {
-        Auth::$BulkProxy->setAuthorizationData(Auth::$AuthorizationData);
-        Auth::$Proxy = Auth::$BulkProxy;
+        $this->bulkProxy->setAuthorizationData($this->authorizationData);
+        $proxy = $this->bulkProxy;
 
         $request = new GetBulkDownloadStatusRequest();
 
         $request->RequestId = $requestId;
 
-        return Auth::$BulkProxy->getService()->getBulkDownloadStatus($request);
+        return $proxy->getService()->getBulkDownloadStatus($request);
     }
 
-    public function getBulkUploadStatus($requestId)
+    /**
+     * @param string $requestId
+     * @return mixed
+     * @throws Exception
+     */
+    public function getBulkUploadStatus(string $requestId): mixed
     {
-        Auth::$BulkProxy->setAuthorizationData(Auth::$AuthorizationData);
-        Auth::$Proxy = Auth::$BulkProxy;
+        $this->bulkProxy->setAuthorizationData($this->authorizationData);
+        $proxy = $this->bulkProxy;
 
         $request = new GetBulkUploadStatusRequest();
 
         $request->RequestId = $requestId;
 
-        return Auth::$BulkProxy->getService()->getBulkUploadStatus($request);
+        return $proxy->getService()->getBulkUploadStatus($request);
     }
 
-    public function getBulkUploadUrl($responseMode, $accountId)
+    /**
+     * @param ResponseMode $responseMode
+     * @param int $accountId
+     * @return mixed
+     * @throws Exception
+     */
+    public function getBulkUploadUrl(ResponseMode $responseMode, int $accountId): mixed
     {
-        Auth::$BulkProxy->setAuthorizationData(Auth::$AuthorizationData);
-        Auth::$Proxy = Auth::$BulkProxy;
+        $this->bulkProxy->setAuthorizationData($this->authorizationData);
+        $proxy = $this->bulkProxy;
 
         $request = new GetBulkUploadUrlRequest();
 
         $request->ResponseMode = $responseMode;
         $request->AccountId = $accountId;
 
-        return Auth::$BulkProxy->getService()->getBulkUploadUrl($request);
+        return $proxy->getService()->getBulkUploadUrl($request);
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputAdApiError($dataObject): void
     {
         if (!empty($dataObject))
@@ -59,6 +87,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfAdApiError($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->AdApiError))
@@ -75,6 +107,11 @@ final class BulkHelper
             $this->outputAdApiError($dataObject);
         }
     }
+
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputAdApiFaultDetail($dataObject): void
     {
         if (!empty($dataObject))
@@ -85,6 +122,11 @@ final class BulkHelper
             $this->outputStatusMessage("* * * End OutputAdApiFaultDetail * * *");
         }
     }
+
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfAdApiFaultDetail($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->AdApiFaultDetail))
@@ -97,6 +139,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputApiFaultDetail($dataObject): void
     {
         if (!empty($dataObject))
@@ -110,6 +156,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfApiFaultDetail($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->ApiFaultDetail))
@@ -122,6 +172,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputApplicationFault($dataObject): void
     {
         if (!empty($dataObject))
@@ -140,6 +194,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfApplicationFault($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->ApplicationFault))
@@ -152,6 +210,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputBatchError($dataObject): void
     {
         if (!empty($dataObject))
@@ -174,6 +236,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfBatchError($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->BatchError))
@@ -186,6 +252,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputCampaignScope($dataObject): void
     {
         if (!empty($dataObject))
@@ -197,6 +267,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfCampaignScope($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->CampaignScope))
@@ -208,6 +282,11 @@ final class BulkHelper
             $this->outputCampaignScope($dataObject);
         }
     }
+
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputEditorialError($dataObject): void
     {
         if (!empty($dataObject))
@@ -222,6 +301,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfEditorialError($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->EditorialError))
@@ -239,6 +322,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputKeyValuePairOfstringstring($dataObject): void
     {
         if (!empty($dataObject))
@@ -250,6 +337,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfKeyValuePairOfstringstring($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->KeyValuePairOfstringstring))
@@ -262,6 +353,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObject
+     * @return void
+     */
     public function outputOperationError($dataObject): void
     {
         if (!empty($dataObject))
@@ -275,6 +370,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $dataObjects
+     * @return void
+     */
     public function outputArrayOfOperationError($dataObjects): void
     {
         if(count((array)$dataObjects) == 0 || !isset($dataObjects->OperationError))
@@ -292,6 +391,10 @@ final class BulkHelper
         }
     }
 
+    /**
+     * @param $valueSet
+     * @return void
+     */
     public function outputCompressionType($valueSet): void
     {
         $this->outputStatusMessage("* * * Begin OutputCompressionType * * *");
@@ -303,6 +406,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputCompressionType * * *");
     }
 
+    /**
+     * @param $valueSets
+     * @return void
+     */
     public function outputArrayOfCompressionType($valueSets): void
     {
         if(count((array)$valueSets) == 0)
@@ -317,6 +424,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfCompressionType * * *");
     }
 
+    /**
+     * @param $valueSet
+     * @return void
+     */
     public function outputDataScope($valueSet): void
     {
         $this->outputStatusMessage("* * * Begin OutputDataScope * * *");
@@ -328,6 +439,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputDataScope * * *");
     }
 
+    /**
+     * @param $valueSets
+     * @return void
+     */
     public function outputArrayOfDataScope($valueSets): void
     {
         if(count((array)$valueSets) == 0)
@@ -342,6 +457,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfDataScope * * *");
     }
 
+    /**
+     * @param $valueSet
+     * @return void
+     */
     public function outputDownloadEntity($valueSet): void
     {
         $this->outputStatusMessage("* * * Begin OutputDownloadEntity * * *");
@@ -353,6 +472,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputDownloadEntity * * *");
     }
 
+    /**
+     * @param $valueSets
+     * @return void
+     */
     public function outputArrayOfDownloadEntity($valueSets): void
     {
         if(count((array)$valueSets) == 0)
@@ -367,6 +490,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfDownloadEntity * * *");
     }
 
+    /**
+     * @param $valueSet
+     * @return void
+     */
     public function outputDownloadFileType($valueSet): void
     {
         $this->outputStatusMessage("* * * Begin OutputDownloadFileType * * *");
@@ -378,6 +505,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputDownloadFileType * * *");
     }
 
+    /**
+     * @param $valueSets
+     * @return void
+     */
     public function outputArrayOfDownloadFileType($valueSets): void
     {
         if(count((array)$valueSets) == 0)
@@ -392,6 +523,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfDownloadFileType * * *");
     }
 
+    /**
+     * @param $valueSet
+     * @return void
+     */
     public function outputResponseMode($valueSet): void
     {
         $this->outputStatusMessage("* * * Begin OutputResponseMode * * *");
@@ -402,6 +537,11 @@ final class BulkHelper
         }
         $this->outputStatusMessage("* * * End OutputResponseMode * * *");
     }
+
+    /**
+     * @param $valueSets
+     * @return void
+     */
     public function outputArrayOfResponseMode($valueSets): void
     {
         if(count((array)$valueSets) == 0)
@@ -416,11 +556,19 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfResponseMode * * *");
     }
 
+    /**
+     * @param $message
+     * @return void
+     */
     public function outputStatusMessage($message): void
     {
         printf(" % s\n", $message);
     }
 
+    /**
+     * @param $items
+     * @return void
+     */
     public function outputArrayOfString($items): void
     {
         if(count((array)$items) == 0 || !isset($items->string))
@@ -435,6 +583,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfString * * *");
     }
 
+    /**
+     * @param $items
+     * @return void
+     */
     public function outputArrayOfLong($items): void
     {
         if(count((array)$items) == 0 || !isset($items->long))
@@ -449,6 +601,10 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfLong * * *");
     }
 
+    /**
+     * @param $items
+     * @return void
+     */
     public function outputArrayOfInt($items): void
     {
         if(count((array)$items) == 0 || !isset($items->int))

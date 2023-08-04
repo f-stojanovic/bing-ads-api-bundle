@@ -8,29 +8,31 @@ use Coddict\BingAdsApiBundle\SoapFault;
 use Exception;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use Microsoft\BingAds\Auth\AuthorizationData;
 use Microsoft\BingAds\V13\Bulk\ResponseMode;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use ZipArchive;
+use Psr\Log\LoggerInterface;
 
 class CustomerListHelper
 {
-    const DEBUG = true;
+    public function __construct(
+        private readonly Auth               $auth,
+        private readonly ContainerInterface $container,
+        private readonly AuthorizationData  $authorizationData,
+        private readonly BulkHelper         $bulkHelper,
+        private readonly LoggerInterface    $logger
+    ) { }
 
-    private ?Auth $auth;
-    private readonly ContainerInterface $container;
-
-    private function getAuth(): Auth
+    /**
+     * @param array $emails
+     * @param string $listId
+     * @return void
+     * @throws Exception
+     */
+    public function addEmailsToBingAdsList(array $emails, string $listId): void
     {
-        if (!$this->auth) {
-            $this->auth = new Auth();
-            $this->auth->authenticate();
-        }
-        return $this->auth;
-    }
-
-    public function addEmailsToBingAdsList(array $emails, $listId): void
-    {
-        $this->getAuth();
+        $this->auth->authenticate();
 
         if (empty($emails)) {
             return;
@@ -54,9 +56,15 @@ class CustomerListHelper
         $this->uploadDataToBing('add', $header, $records);
     }
 
-    public function removeEmailsFomBingAdsList(array $emails, $listId): void
+    /**
+     * @param array $emails
+     * @param string $listId
+     * @return void
+     * @throws Exception
+     */
+    public function removeEmailsFomBingAdsList(array $emails, string $listId): void
     {
-        $this->getAuth();
+        $this->auth->authenticate();
 
         if (empty($emails)) {
             return;
@@ -81,6 +89,12 @@ class CustomerListHelper
         $this->uploadDataToBing('remove', $header, $records);
     }
 
+    /**
+     * @param string $type
+     * @param array $header
+     * @param array $records
+     * @return void
+     */
     private function uploadDataToBing(string $type, array $header, array $records): void
     {
         try {
@@ -93,20 +107,18 @@ class CustomerListHelper
             $this->compressFile($uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
             
             $responseMode = ResponseMode::ErrorsAndResults;
-            $uploadResponse = BulkHelper::getBulkUploadUrl(
+            $uploadResponse = $this->bulkHelper->getBulkUploadUrl(
                 $responseMode,
-                Auth::$AuthorizationData->AccountId
+                $this->authorizationData->AccountId
             );
             
             $uploadRequestId = $uploadResponse->RequestId;
             $uploadUrl = $uploadResponse->UploadUrl;
 
-            if (self::DEBUG) {
-                print("-----\r\nGetBulkUploadUrl:\r\n");
-                printf("RequestId: %s\r\n", $uploadRequestId);
-                printf("UploadUrl: %s\r\n", $uploadUrl);
-                printf("-----\r\nUploading file from %s.\r\n", $bulkFilePath);  
-            }
+            $this->logger->debug("-----\r\nGetBulkUploadUrl:\r\n");
+            $this->logger->debug(sprintf("RequestId: %s\r\n", $uploadRequestId));
+            $this->logger->debug(sprintf("UploadUrl: %s\r\n", $uploadUrl));
+            $this->logger->debug(sprintf("-----\r\nUploading file from %s.\r\n", $bulkFilePath));
             
             $uploadSuccess = $this->uploadFile($uploadUrl, $bulkFilePath);
             
@@ -125,21 +137,19 @@ class CustomerListHelper
                 sleep($waitTime);
                 
                 // Get the upload request status.
-                $getBulkUploadStatusResponse = BulkHelper::getBulkUploadStatus(
+                $getBulkUploadStatusResponse = $this->bulkHelper->getBulkUploadStatus(
                     $uploadRequestId
                 );
 
                 $requestStatus = $getBulkUploadStatusResponse->RequestStatus;
                 $resultFileUrl = $getBulkUploadStatusResponse->ResultFileUrl;
 
-                if (self::DEBUG) {
-                    print("-----\r\nGetBulkUploadStatus:\r\n");
-                    printf("PercentComplete: %s\r\n", $getBulkUploadStatusResponse->PercentComplete);
-                    printf("RequestStatus: %s\r\n", $requestStatus);
-                    printf("ResultFileUrl: %s\r\n", $resultFileUrl);
-                }
+                $this->logger->debug("-----\r\nGetBulkUploadUrl:\r\n");
+                $this->logger->debug(sprintf("RequestId: %s\r\n", $uploadRequestId));
+                $this->logger->debug(sprintf("UploadUrl: %s\r\n", $uploadUrl));
+                $this->logger->debug(sprintf("-----\r\nUploading file from %s.\r\n", $bulkFilePath));
                 
-                if (($requestStatus != null) && (($requestStatus == "Completed") || ($requestStatus == "CompletedWithErrors"))) {
+                if ((($requestStatus == "Completed") || ($requestStatus == "CompletedWithErrors"))) {
                     $uploadSuccess = true;
                     break;
                 }
@@ -149,15 +159,11 @@ class CustomerListHelper
                 // Get the upload result file.
                 $uploadResultFilePath = __DIR__ . "/../storage/results_{$type}.zip";
 
-                if (self::DEBUG) {
-                    printf("-----\r\nDownloading the upload result file from %s...\r\n", $resultFileUrl);
-                }
+                $this->logger->debug(sprintf("-----\r\nDownloading the upload result file from %s...\r\n", $resultFileUrl));
 
                 $this->downloadFile($resultFileUrl, $uploadResultFilePath);
 
-                if (self::DEBUG) {
-                    printf("The upload result file was written to %s.\r\n", $uploadResultFilePath);
-                }
+                $this->logger->debug(sprintf("The upload result file was written to %s.\r\n", $uploadResultFilePath));
 
                 $this->decompressFile($uploadResultFilePath, __DIR__ . "/../storage/results_{$type}.csv");
 
@@ -175,9 +181,8 @@ class CustomerListHelper
                         return $item['Type'] == 'Customer List Item Error';
                     }, ARRAY_FILTER_USE_BOTH);
 
-                    if (self::DEBUG) {
-                        printf("Errors: " . count($errorLines));
-                    }
+
+                    $this->logger->debug("Errors: " . count($errorLines));
 
                     // Move file to archive
                     rename($file, __DIR__ . '/../storage/archive/' . basename($file));
@@ -187,7 +192,7 @@ class CustomerListHelper
                 }
             }
             else {
-                throw new Exception("The request is taking longer than expected.\r\n" +
+                throw new Exception("The request is taking longer than expected.\r\n" .
                     "Save the upload ID (%s) and try again later.", $uploadRequestId);
             }
         } catch (SoapFault $e) {
@@ -198,7 +203,13 @@ class CustomerListHelper
         }
     }
 
-    private function decompressFile($fromZipArchive, $toExtractedFile): void
+    /**
+     * @param string $fromZipArchive
+     * @param string $toExtractedFile
+     * @return void
+     * @throws Exception
+     */
+    private function decompressFile(string $fromZipArchive, string $toExtractedFile): void
     {
         $archive = new ZipArchive;
 
@@ -211,7 +222,13 @@ class CustomerListHelper
         }
     }
 
-    private function compressFile($fromExtractedFile, $toZipArchive): void
+    /**
+     * @param string $fromExtractedFile
+     * @param string $toZipArchive
+     * @return void
+     * @throws Exception
+     */
+    private function compressFile(string $fromExtractedFile, string $toZipArchive): void
     {
         $archive = new ZipArchive;
 
@@ -224,7 +241,13 @@ class CustomerListHelper
         }
     }
 
-    private function downloadFile($downloadUrl, $filePath): void
+    /**
+     * @param string $downloadUrl
+     * @param string $filePath
+     * @return void
+     * @throws Exception
+     */
+    private function downloadFile(string $downloadUrl, string $filePath): void
     {
         if (!$reader = fopen($downloadUrl, 'rb')) {
             throw new Exception("Failed to open URL " . $downloadUrl . ".");
@@ -255,28 +278,33 @@ class CustomerListHelper
         fflush($writer);
         fclose($writer);
     }
-    
-    private function uploadFile($uploadUrl, $filePath): bool
+
+    /**
+     * @param string $uploadUrl
+     * @param string $filePath
+     * @return bool
+     * @throws Exception
+     */
+    private function uploadFile(string $uploadUrl, string $filePath): bool
     {
-        date_default_timezone_set("UTC");
         $ch = curl_init($uploadUrl);
     
         curl_setopt ($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, 0);
     
-        if (!isset(Auth::$AuthorizationData)) {
+        if (!isset($this->authorizationData)) {
             throw new Exception("AuthorizationData is not set.");
         }
         
         // Set the authorization headers.
-        if (isset(Auth::$AuthorizationData->Authentication) && isset(Auth::$AuthorizationData->Authentication->Type)) {
+        if (isset($this->authorizationData->Authentication->Type)) {
             $authorizationHeaders = array();
-            $authorizationHeaders[] = "DeveloperToken: " . Auth::$AuthorizationData->DeveloperToken;
-            $authorizationHeaders[] = "CustomerId: " . Auth::$AuthorizationData->CustomerId;
-            $authorizationHeaders[] = "CustomerAccountId: " . Auth::$AuthorizationData->AccountId;
+            $authorizationHeaders[] = "DeveloperToken: " . $this->authorizationData->DeveloperToken;
+            $authorizationHeaders[] = "CustomerId: " . $this->authorizationData->CustomerId;
+            $authorizationHeaders[] = "CustomerAccountId: " . $this->authorizationData->AccountId;
             
-            if (isset(Auth::$AuthorizationData->Authentication->OAuthTokens)) {
-                $authorizationHeaders[] = "AuthenticationToken: " . Auth::$AuthorizationData->Authentication->OAuthTokens->AccessToken;
+            if (isset($this->authorizationData->Authentication->OAuthTokens)) {
+                $authorizationHeaders[] = "AuthenticationToken: " . $this->authorizationData->Authentication->OAuthTokens->AccessToken;
             }
         }
         else {
@@ -295,15 +323,11 @@ class CustomerListHelper
         $http_code = $info['http_code'];
                   
         if (curl_errno($ch)) {
-            if (self::DEBUG) {
-                print "Curl Error: " . curl_error($ch) . "\r\n";
-            }
+            $this->logger->debug("Curl Error: " . curl_error($ch) . "\r\n");
         }
         else {
-            if (self::DEBUG) {
-                print "Upload Result:\n" . $result . "\r\n";
-                print "HTTP Result Code:\n" . $http_code . "\r\n";
-            }
+            $this->logger->debug("Upload Result:\n" . $result . "\r\n");
+            $this->logger->debug("HTTP Result Code:\n" . $http_code . "\r\n");
         }
                  
         curl_close($ch);
@@ -315,5 +339,4 @@ class CustomerListHelper
             return false;
         }
     }
-    
 }

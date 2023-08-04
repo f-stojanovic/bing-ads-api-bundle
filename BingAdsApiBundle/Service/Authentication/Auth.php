@@ -2,13 +2,12 @@
 
 namespace Coddict\BingAdsApiBundle\Service\Authentication;
 
-use Coddict\BingAdsApiBundle\Config;
 use Coddict\BingAdsApiBundle\CustomerManagement;
+use Exception;
 use Microsoft\BingAds\Auth\AuthorizationData;
 use Microsoft\BingAds\Auth\OAuthDesktopMobileAuthCodeGrant;
 use Microsoft\BingAds\Auth\OAuthTokenRequestException;
 use Microsoft\BingAds\Auth\ServiceClient;
-use Microsoft\BingAds\Auth\ServiceClientType;
 use Microsoft\BingAds\V13\CustomerManagement\Paging;
 use Microsoft\BingAds\V13\CustomerManagement\Predicate;
 use Microsoft\BingAds\V13\CustomerManagement\PredicateOperator;
@@ -16,25 +15,22 @@ use Microsoft\BingAds\V13\CustomerManagement\SearchAccountsRequest;
 
 final class Auth
 {
-    static $AuthorizationData;
+    public function __construct(
+        private readonly array         $config,
+        private AuthorizationData      $authorizationData,
+        private readonly ServiceClient $customerManagementProxy,
+        private readonly ServiceClient $bulkProxy
+    ) { }
 
-    static $CustomerManagementProxy;
-
-    static $Proxy;
-
-    static $BulkProxy;
-
+    /**
+     * @return void
+     * @throws Exception
+     */
     public function authenticate(): void
-    {   
+    {
         // Authenticate with a Microsoft Account.
         $this->authenticateWithOAuth();
 
-        self::$CustomerManagementProxy = new ServiceClient(
-            ServiceClientType::CustomerManagementVersion13, 
-            self::$AuthorizationData, 
-            Config::ApiEnvironment
-        );
-            
         // Set to an empty user identifier to get the current authenticated user,
         // and then search for accounts the user can access.
         $user = CustomerManagement::getUser(null, true)->User;
@@ -42,27 +38,25 @@ final class Auth
         // To retrieve more than 100 accounts, increase the page size up to 1,000.
         // To retrieve more than 1,000 accounts you'll need to implement paging.
         $accounts = $this->searchAccountsByUserId($user->Id, 0, 100)->Accounts;
-        
-        // We'll use the first account by default for the examples. 
-        self::$AuthorizationData->AccountId = $accounts->AdvertiserAccount[0]->Id;
-        self::$AuthorizationData->CustomerId = $accounts->AdvertiserAccount[0]->ParentCustomerId;
 
-        self::$BulkProxy = new ServiceClient(
-            ServiceClientType::BulkVersion13, 
-            self::$AuthorizationData, 
-            Config::ApiEnvironment
-        );
+        // We'll use the first account by default for the examples.
+        $this->authorizationData->AccountId = $accounts->AdvertiserAccount[0]->Id;
+        $this->authorizationData->CustomerId = $accounts->AdvertiserAccount[0]->ParentCustomerId;
 
-        self::$CustomerManagementProxy = new ServiceClient(
-            ServiceClientType::CustomerManagementVersion13, 
-            self::$AuthorizationData, 
-            Config::ApiEnvironment
-        );
+        // Update the proxies with the new authorization data
+        $this->customerManagementProxy->setAuthorizationData($this->authorizationData);
+        $this->bulkProxy->setAuthorizationData($this->authorizationData);
     }
 
-    public function searchAccountsByUserId($userId, $pageIndex, $pageSize)
+    /**
+     * @param string $userId
+     * @param int $pageIndex
+     * @param int $pageSize
+     * @return mixed
+     */
+    public function searchAccountsByUserId(string $userId, int $pageIndex, int $pageSize): mixed
     {
-        self::$Proxy = self::$CustomerManagementProxy;
+        $proxy = $this->customerManagementProxy;
     
         // Specify the page index and number of account results per page.
         $pageInfo = new Paging();
@@ -79,28 +73,31 @@ final class Auth
         $request->PageInfo = $pageInfo;
         $request->Predicates = array($predicate);
 
-        return self::$Proxy->getService()->searchAccounts($request);
+        return $proxy->getService()->searchAccounts($request);
     }
 
+    /**
+     * @return void
+     */
     public function authenticateWithOAuth(): void
     {
         $authentication = (new OAuthDesktopMobileAuthCodeGrant())
-            ->withEnvironment(Config::ApiEnvironment)
-            ->withClientId(Config::ClientId)
-            ->withClientSecret(Config::ClientSecret)
-            ->withOAuthScope(Config::OAuthScope);
+            ->withEnvironment($this->config['api_environment'])
+            ->withClientId($this->config['client_id'])
+            ->withClientSecret($this->config['client_secret'])
+            ->withOAuthScope($this->config['oauth_scope']);
             
-        self::$AuthorizationData = (new AuthorizationData())
+        $this->authorizationData = (new AuthorizationData())
             ->withAuthentication($authentication)
-            ->withDeveloperToken(Config::DeveloperToken);
+            ->withDeveloperToken($this->config['developer_token']);
 
         try {
             $refreshToken = $this->readOAuthRefreshToken();
 
             if ($refreshToken != null)  {
-                self::$AuthorizationData->Authentication->requestOAuthTokensByRefreshToken($refreshToken);
+                $this->authorizationData->Authentication->requestOAuthTokensByRefreshToken($refreshToken);
                 $this->writeOAuthRefreshToken(
-                    self::$AuthorizationData->Authentication->OAuthTokens->RefreshToken
+                    $this->authorizationData->Authentication->OAuthTokens->RefreshToken
                 );
             }
             else {
@@ -111,29 +108,35 @@ final class Auth
         }
     }
 
+    /**
+     * @return void
+     */
     public function requestUserConsent(): void
     {
         print "You need to provide consent for the application to access your Microsoft Advertising accounts. " .
               "Copy and paste this authorization endpoint into a web browser and sign in with a Microsoft account " . 
-              "with access to a Microsoft Advertising account: \n\n" . self::$AuthorizationData->Authentication->getAuthorizationEndpoint() .
+              "with access to a Microsoft Advertising account: \n\n" . $this->authorizationData->Authentication->getAuthorizationEndpoint() .
               "\n\nAfter you have granted consent in the web browser for the application to access your Microsoft Advertising accounts, " .
               "please enter the response URI that includes the authorization 'code' parameter: \n\n";
         
         $responseUri = fgets(STDIN);
         print "\n";
 
-        self::$AuthorizationData->Authentication->requestOAuthTokensByResponseUri(trim($responseUri));
-        $this->writeOAuthRefreshToken(self::$AuthorizationData->Authentication->OAuthTokens->RefreshToken);
+        $this->authorizationData->Authentication->requestOAuthTokensByResponseUri(trim($responseUri));
+        $this->writeOAuthRefreshToken($this->authorizationData->Authentication->OAuthTokens->RefreshToken);
     }
 
+    /**
+     * @return string|null
+     */
     public function readOAuthRefreshToken(): ?string
     {
         $refreshToken = null;
 
         try {
-            if (file_exists(Config::OAuthRefreshTokenPath) && filesize(Config::OAuthRefreshTokenPath) > 0) {
-                $refreshTokenfile = fopen(Config::OAuthRefreshTokenPath, "r");
-                $refreshToken = fread($refreshTokenfile, filesize(Config::OAuthRefreshTokenPath));
+            if (file_exists($this->config['oauth_refresh_token_path']) && filesize($this->config['oauth_refresh_token_path']) > 0) {
+                $refreshTokenfile = fopen($this->config['oauth_refresh_token_path'], "r");
+                $refreshToken = fread($refreshTokenfile, filesize($this->config['oauth_refresh_token_path']));
                 fclose($refreshTokenfile);
             }
         } catch (\Throwable $e) {
@@ -144,15 +147,19 @@ final class Auth
         return $refreshToken;
     }
 
+    /**
+     * @param string $refreshToken
+     * @return void
+     */
     public function writeOAuthRefreshToken(string $refreshToken): void
     {
         try {
-            $refreshTokenFile = fopen(Config::OAuthRefreshTokenPath, "wb");
+            $refreshTokenFile = fopen($this->config['oauth_refresh_token_path'], "wb");
             if ($refreshTokenFile !== false) {
                 fwrite($refreshTokenFile, $refreshToken);
                 fclose($refreshTokenFile);
             } else {
-                throw new \Exception("Failed to open the refresh token file for writing.");
+                throw new Exception("Failed to open the refresh token file for writing.");
             }
         } catch (\Throwable $e) {
             var_dump($e);
