@@ -79,6 +79,7 @@ final class Auth
 
     /**
      * @return void
+     * @throws Exception
      */
     public function authenticateWithOAuth(): void
     {
@@ -111,6 +112,7 @@ final class Auth
 
     /**
      * @return void
+     * @throws Exception
      */
     public function requestUserConsent(): void
     {
@@ -129,19 +131,20 @@ final class Auth
 
     /**
      * @return string|null
+     * @throws Exception
      */
     public function readOAuthRefreshToken(): ?string
     {
         $refreshToken = null;
 
-        try {
-            if (file_exists($this->config['oauth_refresh_token_path']) && filesize($this->config['oauth_refresh_token_path']) > 0) {
-                $refreshTokenfile = fopen($this->config['oauth_refresh_token_path'], "r");
-                $refreshToken = fread($refreshTokenfile, filesize($this->config['oauth_refresh_token_path']));
-                fclose($refreshTokenfile);
+        if (file_exists($this->config['oauth_refresh_token_path']) && filesize($this->config['oauth_refresh_token_path']) > 0) {
+            $refreshTokenFile = fopen($this->config['oauth_refresh_token_path'], "r");
+            if ($refreshTokenFile !== false) {
+                $refreshToken = fread($refreshTokenFile, filesize($this->config['oauth_refresh_token_path']));
+                fclose($refreshTokenFile);
+            } else {
+                throw new Exception("Failed to open the refresh token file for reading.");
             }
-        } catch (\Throwable $e) {
-            echo $e->getMessage();
         }
 
         return $refreshToken;
@@ -150,19 +153,20 @@ final class Auth
     /**
      * @param string $refreshToken
      * @return void
+     * @throws Exception
      */
     public function writeOAuthRefreshToken(string $refreshToken): void
     {
-        try {
-            $refreshTokenFile = fopen($this->config['oauth_refresh_token_path'], "wb");
-            if ($refreshTokenFile !== false) {
-                fwrite($refreshTokenFile, $refreshToken);
+        $refreshTokenFile = fopen($this->config['oauth_refresh_token_path'], "wb");
+        if ($refreshTokenFile !== false) {
+            if (fwrite($refreshTokenFile, $refreshToken) === false) {
                 fclose($refreshTokenFile);
-            } else {
-                throw new Exception("Failed to open the refresh token file for writing.");
+                throw new Exception("Failed to write the refresh token to the file.");
             }
-        } catch (\Throwable $e) {
-            echo $e->getMessage();
+            fclose($refreshTokenFile);
+        } else {
+            throw new Exception("Failed to open the refresh token file for writing.");
         }
     }
+
 }

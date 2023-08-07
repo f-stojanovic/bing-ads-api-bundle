@@ -94,6 +94,7 @@ class CustomerListHelper
      * @param array $header
      * @param array $records
      * @return void
+     * @throws Exception
      */
     private function uploadDataToBing(string $type, array $header, array $records): void
     {
@@ -195,7 +196,7 @@ class CustomerListHelper
                     "Save the upload ID (%s) and try again later.", $uploadRequestId);
             }
         } catch (SoapFault|Exception $e) {
-            echo $e->getMessage();
+            throw new Exception("Business logic error occurred: " . $e->getMessage());
         }
     }
 
