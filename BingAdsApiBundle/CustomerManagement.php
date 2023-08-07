@@ -2,22 +2,30 @@
 
 namespace Coddict\BingAdsApiBundle;
 
-use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
+use Exception;
+use Microsoft\BingAds\Auth\AuthorizationData;
+use Microsoft\BingAds\Auth\ServiceClient;
 use Microsoft\BingAds\V13\CustomerManagement\GetUserRequest;
 
 class CustomerManagement
 {
-    static function getUser($userId)
-    {
-        Auth::$CustomerManagementProxy->SetAuthorizationData(Auth::$AuthorizationData);
+    public function __construct(
+        private readonly ServiceClient $customerManagementProxy,
+        private readonly AuthorizationData $authorizationData
+    ) { }
 
-        Auth::$Proxy = Auth::$CustomerManagementProxy;
+    /**
+     * @param int|null $userId
+     * @return mixed
+     * @throws Exception
+     */
+    public function getUser(?int $userId): mixed
+    {
+        $this->customerManagementProxy->setAuthorizationData($this->authorizationData);
 
         $request = new GetUserRequest();
-
         $request->UserId = $userId;
 
-        return Auth::$CustomerManagementProxy->GetService()->GetUser($request);
-
+        return $this->customerManagementProxy->getService()->getUser($request);
     }
 }

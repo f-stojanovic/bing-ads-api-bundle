@@ -7,3 +7,9 @@ services:
     arguments:
       $config: '%bing_ads_api%'
 
+  services:
+    App\Service\CustomerListHelper:
+      arguments:
+        $uploadDirectory: '%bing_ads_api.upload_directory%'
+
+

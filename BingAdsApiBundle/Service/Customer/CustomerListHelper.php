@@ -17,8 +17,8 @@ use Psr\Log\LoggerInterface;
 class CustomerListHelper
 {
     public function __construct(
+        private readonly string             $uploadDirectory,
         private readonly Auth               $auth,
-        private readonly ContainerInterface $container,
         private readonly AuthorizationData  $authorizationData,
         private readonly BulkHelper         $bulkHelper,
         private readonly LoggerInterface    $logger
@@ -98,13 +98,12 @@ class CustomerListHelper
     private function uploadDataToBing(string $type, array $header, array $records): void
     {
         try {
-            $uploadDirectory = $this->container->getParameter('bing_ads_api.upload_directory');
-            $csv = Writer::createFromPath($uploadDirectory . "/emails_to_{$type}.csv", 'w');
+            $csv = Writer::createFromPath($this->uploadDirectory . "/emails_to_{$type}.csv", 'w');
             $csv->insertOne($header);
             $csv->insertAll($records);
 
-            $bulkFilePath = $uploadDirectory . "/emails_to_{$type}.zip";
-            $this->compressFile($uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
+            $bulkFilePath = $this->uploadDirectory . "/emails_to_{$type}.zip";
+            $this->compressFile($this->uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
             
             $responseMode = ResponseMode::ErrorsAndResults;
             $uploadResponse = $this->bulkHelper->getBulkUploadUrl(
@@ -157,7 +156,7 @@ class CustomerListHelper
             
             if ($uploadSuccess) {
                 // Get the upload result file.
-                $uploadResultFilePath = __DIR__ . "/../storage/results_{$type}.zip";
+                $uploadResultFilePath = $this->uploadDirectory . "/results_{$type}.zip";
 
                 $this->logger->debug(sprintf("-----\r\nDownloading the upload result file from %s...\r\n", $resultFileUrl));
 
@@ -195,10 +194,7 @@ class CustomerListHelper
                 throw new Exception("The request is taking longer than expected.\r\n" .
                     "Save the upload ID (%s) and try again later.", $uploadRequestId);
             }
-        } catch (SoapFault $e) {
-            echo $e->getMessage();
-        } catch (Exception $e) {
-            var_dump($e);
+        } catch (SoapFault|Exception $e) {
             echo $e->getMessage();
         }
     }

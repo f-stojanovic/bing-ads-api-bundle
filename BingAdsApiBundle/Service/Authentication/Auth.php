@@ -18,6 +18,7 @@ final class Auth
     public function __construct(
         private readonly array         $config,
         private AuthorizationData      $authorizationData,
+        private readonly CustomerManagement $customerManagement,
         private readonly ServiceClient $customerManagementProxy,
         private readonly ServiceClient $bulkProxy
     ) { }
@@ -33,7 +34,7 @@ final class Auth
 
         // Set to an empty user identifier to get the current authenticated user,
         // and then search for accounts the user can access.
-        $user = CustomerManagement::getUser(null, true)->User;
+        $user = $this->customerManagement->getUser(null, true)->User;
 
         // To retrieve more than 100 accounts, increase the page size up to 1,000.
         // To retrieve more than 1,000 accounts you'll need to implement paging.
@@ -140,7 +141,6 @@ final class Auth
                 fclose($refreshTokenfile);
             }
         } catch (\Throwable $e) {
-            var_dump($e);
             echo $e->getMessage();
         }
 
@@ -162,7 +162,6 @@ final class Auth
                 throw new Exception("Failed to open the refresh token file for writing.");
             }
         } catch (\Throwable $e) {
-            var_dump($e);
             echo $e->getMessage();
         }
     }

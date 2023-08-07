@@ -3,8 +3,8 @@ bing_ads_api:
   developer_token: '%env(BING_ADS_DEVELOPER_TOKEN)%'
   api_environment: 'production'
   oauth_scope: 'msads_manage'
-  oauth_refresh_token_path: 'refresh.txt'
+  oauth_refresh_token_path: '%env(BING_ADS_ROOT)%/refresh_tokens.txt'
   client_id: '%env(BING_ADS_CLIENT_ID)%'
   client_secret: '%env(BING_ADS_CLIENT_SECRET)%'
   audience_id: 818044107
-  upload_directory: 'storage'
+  upload_directory: '%env(BING_ADS_ROOT)%/storage'
