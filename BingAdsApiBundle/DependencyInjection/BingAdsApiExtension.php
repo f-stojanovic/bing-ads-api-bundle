@@ -2,8 +2,11 @@
 
 namespace Coddict\BingAdsApiBundle\DependencyInjection;
 
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Loader;
+
 class BingAdsApiExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container): void
@@ -19,5 +22,8 @@ class BingAdsApiExtension extends Extension
         $container->setParameter('bing_ads_api.client_secret', $config['client_secret']);
         $container->setParameter('bing_ads_api.audience_id', $config['audience_id']);
         $container->setParameter('bing_ads_api.upload_directory', $config['upload_directory']);
+
+        $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
+        $loader->load('services.yaml');
     }
 }
