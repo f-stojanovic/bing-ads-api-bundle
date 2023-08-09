@@ -10,7 +10,6 @@ use League\Csv\Reader;
 use League\Csv\Writer;
 use Microsoft\BingAds\Auth\AuthorizationData;
 use Microsoft\BingAds\V13\Bulk\ResponseMode;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use ZipArchive;
 use Psr\Log\LoggerInterface;
 
