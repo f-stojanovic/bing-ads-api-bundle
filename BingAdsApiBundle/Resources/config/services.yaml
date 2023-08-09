@@ -3,14 +3,22 @@ services:
     autowire: true
     autoconfigure: true
 
+  Microsoft\BingAds\Auth\AuthorizationData:
+
   Coddict\BingAdsApiBundle\Service\Authentication\Auth:
     autowire: true
     arguments:
       $config: '%bing_ads_api%'
 
+  Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper:
+    autowire: true
+
   Coddict\BingAdsApiBundle\Service\Customer\CustomerListHelper:
     autowire: true
     arguments:
       $uploadDirectory: '%bing_ads_api.upload_directory%'
+      $auth: '@Coddict\BingAdsApiBundle\Service\Authentication\Auth'
+      $authorizationData: '@Microsoft\BingAds\Auth\AuthorizationData'
+      $bulkHelper: '@Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper'
 
 
