@@ -4,10 +4,12 @@ services:
     autoconfigure: true
 
   Coddict\BingAdsApiBundle\Service\Authentication\Auth:
+    autowire: true
     arguments:
       $config: '%bing_ads_api%'
 
   Coddict\BingAdsApiBundle\Service\Customer\CustomerListHelper:
+    autowire: true
     arguments:
       $uploadDirectory: '%bing_ads_api.upload_directory%'
 
