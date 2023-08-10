@@ -5,10 +5,24 @@ services:
 
   Microsoft\BingAds\Auth\AuthorizationData:
 
-  Coddict\BingAdsApiBundle\Service\Authentication\Auth:
+  Microsoft\BingAds\Auth\ServiceClient:
+
+  App\Service\Authentication\Auth:
     autowire: true
     arguments:
-      $config: '%bing_ads_api%'
+      $config:
+        developer_token: '%bing_ads_api.developer_token%'
+        client_id: '%bing_ads_api.client_id%'
+        client_secret: '%bing_ads_api.client_secret%'
+        audience_id: '%bing_ads_api.audience_id%'
+        api_environment: '%bing_ads_api.api_environment%'
+        oauth_scope: '%bing_ads_api.oauth_scope%'
+        upload_directory: '%bing_ads_api.upload_directory%'
+        oauth_refresh_token_path: '%bing_ads_api.oauth_refresh_token_path%'
+      $authorizationData: '@Microsoft\BingAds\Auth\AuthorizationData'
+      $customerManagement: '@Coddict\BingAdsApiBundle\CustomerManagement'
+      $customerManagementProxy: '@Microsoft\BingAds\Auth\ServiceClient'
+      $bulkProxy: '@Microsoft\BingAds\Auth\ServiceClient'
 
   Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper:
     autowire: true
