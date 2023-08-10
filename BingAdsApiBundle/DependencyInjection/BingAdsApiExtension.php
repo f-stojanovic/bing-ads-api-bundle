@@ -14,14 +14,14 @@ class BingAdsApiExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        $container->setParameter('developer_token', $config['developer_token']);
-        $container->setParameter('api_environment', $config['api_environment']);
-        $container->setParameter('oauth_scope', $config['oauth_scope']);
-        $container->setParameter('oauth_refresh_token_path', $config['oauth_refresh_token_path']);
-        $container->setParameter('client_id', $config['client_id']);
-        $container->setParameter('client_secret', $config['client_secret']);
-        $container->setParameter('audience_id', $config['audience_id']);
-        $container->setParameter('upload_directory', $config['upload_directory']);
+        $container->setParameter('bing_ads_api.developer_token', $config['developer_token']);
+        $container->setParameter('bing_ads_api.api_environment', $config['api_environment']);
+        $container->setParameter('bing_ads_api.oauth_scope', $config['oauth_scope']);
+        $container->setParameter('bing_ads_api.oauth_refresh_token_path', $config['oauth_refresh_token_path']);
+        $container->setParameter('bing_ads_api.client_id', $config['client_id']);
+        $container->setParameter('bing_ads_api.client_secret', $config['client_secret']);
+        $container->setParameter('bing_ads_api.audience_id', $config['audience_id']);
+        $container->setParameter('bing_ads_api.upload_directory', $config['upload_directory']);
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
