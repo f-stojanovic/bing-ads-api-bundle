@@ -1,10 +1,10 @@
 # config/packages/bing_ads_api.yaml
 parameters:
-  bing_ads_api.developer_token: '%env(BING_ADS_DEVELOPER_TOKEN)%'
-  bing_ads_api.client_id: '%env(BING_ADS_CLIENT_ID)%'
-  bing_ads_api.client_secret: '%env(BING_ADS_CLIENT_SECRET)%'
-  bing_ads_api.audience_id: '%env(int:BING_ADS_AUDIENCE_ID)%'
-  bing_ads_api.api_environment: 'production'
-  bing_ads_api.oauth_scope: 'msads_manage'
-  bing_ads_api.upload_directory: '%kernel.cache_dir%/bingads/uploads'
-  bing_ads_api.oauth_refresh_token_path: '%kernel.cache_dir%/bingads/refresh_tokens.txt'
+  developer_token: '%env(BING_ADS_DEVELOPER_TOKEN)%'
+  client_id: '%env(BING_ADS_CLIENT_ID)%'
+  client_secret: '%env(BING_ADS_CLIENT_SECRET)%'
+  audience_id: '%env(int:BING_ADS_AUDIENCE_ID)%'
+  api_environment: 'production'
+  oauth_scope: 'msads_manage'
+  upload_directory: '%kernel.cache_dir%/bingads/uploads'
+  oauth_refresh_token_path: '%kernel.cache_dir%/bingads/refresh_tokens.txt'
