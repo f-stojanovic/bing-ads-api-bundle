@@ -16,11 +16,11 @@ use Microsoft\BingAds\V13\CustomerManagement\SearchAccountsRequest;
 final class Auth
 {
     public function __construct(
-        private readonly array         $config,
-        private AuthorizationData      $authorizationData,
-        private readonly CustomerManagement $customerManagement,
-        private readonly ServiceClient $customerManagementProxy,
-        private readonly ServiceClient $bulkProxy
+        private readonly array                   $config,
+        private AuthorizationData                $authorizationData,
+        private readonly CustomerManagement      $customerManagement,
+        private ServiceClient                    $customerManagementProxy,
+        private ServiceClient                    $bulkProxy
     ) { }
 
     /**
@@ -32,21 +32,28 @@ final class Auth
         // Authenticate with a Microsoft Account.
         $this->authenticateWithOAuth();
 
-        // Set to an empty user identifier to get the current authenticated user,
-        // and then search for accounts the user can access.
+        $this->customerManagementProxy = new ServiceClient(
+            'CustomerManagementVersion13',
+            $this->authorizationData,
+            'Production');
+
         $user = $this->customerManagement->getUser(null, true)->User;
 
-        // To retrieve more than 100 accounts, increase the page size up to 1,000.
-        // To retrieve more than 1,000 accounts you'll need to implement paging.
         $accounts = $this->searchAccountsByUserId($user->Id, 0, 100)->Accounts;
 
-        // We'll use the first account by default for the examples.
         $this->authorizationData->AccountId = $accounts->AdvertiserAccount[0]->Id;
         $this->authorizationData->CustomerId = $accounts->AdvertiserAccount[0]->ParentCustomerId;
 
+        $this->bulkProxy = new ServiceClient(
+            'BulkVersion13',
+            $this->authorizationData,
+            'Production');
+
         // Update the proxies with the new authorization data
-        $this->customerManagementProxy->setAuthorizationData($this->authorizationData);
-        $this->bulkProxy->setAuthorizationData($this->authorizationData);
+        $this->customerManagementProxy  = new ServiceClient(
+            'CustomerManagementVersion13',
+            $this->authorizationData,
+            'Production');
     }
 
     /**
