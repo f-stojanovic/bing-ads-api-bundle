@@ -11,7 +11,8 @@
         "league/csv": "^9.0",
         "ext-zip": "*",
         "ext-curl": "*",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "symfony/http-kernel": "^6.1"
     },
     "autoload": {
         "psr-4": {

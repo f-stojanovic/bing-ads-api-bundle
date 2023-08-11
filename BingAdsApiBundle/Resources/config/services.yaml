@@ -3,41 +3,24 @@ services:
     autowire: true
     autoconfigure: true
 
-  Microsoft\BingAds\Auth\AuthorizationData:
-
-  Microsoft\BingAds\Auth\ServiceClient:
-    autowire: true
-    arguments:
-      $serviceClientType: 'CustomerManagementVersion13'
-      $authorizationData: '@Microsoft\BingAds\Auth\AuthorizationData'
-      $apiEnvironment: 'Production'
-
-  App\Service\Authentication\Auth:
+  Coddict\BingAdsApiBundle\Service\Factory\ServiceClientFactory:
     autowire: true
     arguments:
       $config:
-          developer_token: '%bing_ads_api.developer_token%'
-          client_id: '%bing_ads_api.client_id%'
-          client_secret: '%bing_ads_api.client_secret%'
-          audience_id: '%bing_ads_api.audience_id%'
-          api_environment: '%bing_ads_api.api_environment%'
-          oauth_scope: '%bing_ads_api.oauth_scope%'
-          upload_directory: '%bing_ads_api.upload_directory%'
-          oauth_refresh_token_path: '%bing_ads_api.oauth_refresh_token_path%'
-      $authorizationData: '@Microsoft\BingAds\Auth\AuthorizationData'
-      $customerManagement: '@Coddict\BingAdsApiBundle\CustomerManagement'
-      $customerManagementProxy: '@Microsoft\BingAds\Auth\ServiceClient'
-      $bulkProxy: '@Microsoft\BingAds\Auth\ServiceClient'
+        developer_token: '%bing_ads_api.developer_token%'
+        client_id: '%bing_ads_api.client_id%'
+        client_secret: '%bing_ads_api.client_secret%'
+        audience_id: '%bing_ads_api.audience_id%'
+        api_environment: '%bing_ads_api.api_environment%'
+        oauth_scope: '%bing_ads_api.oauth_scope%'
+        upload_directory: '%bing_ads_api.upload_directory%'
+        oauth_refresh_token_path: '%bing_ads_api.oauth_refresh_token_path%'
+      $uploadDirectory: '%bing_ads_api.upload_directory%'
 
-  Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper:
-    autowire: true
+  Microsoft\BingAds\Auth\ServiceClient:
+    factory: [ '@App\Factory\ServiceClientFactory', 'createServiceClient' ]
 
   Coddict\BingAdsApiBundle\Service\Customer\CustomerListHelper:
-    autowire: true
-    arguments:
-      $uploadDirectory: '%bing_ads_api.upload_directory%'
-      $auth: '@Coddict\BingAdsApiBundle\Service\Authentication\Auth'
-      $authorizationData: '@Microsoft\BingAds\Auth\AuthorizationData'
-      $bulkHelper: '@Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper'
+    factory: [ '@App\Factory\ServiceClientFactory', 'createCustomerListHelper' ]
 
 

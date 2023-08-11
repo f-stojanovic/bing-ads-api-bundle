@@ -1,4 +1,5 @@
 <?php
+
 namespace Coddict\BingAdsApiBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
