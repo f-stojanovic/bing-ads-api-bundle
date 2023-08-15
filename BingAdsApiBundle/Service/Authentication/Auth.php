@@ -15,12 +15,13 @@ use Microsoft\BingAds\V13\CustomerManagement\SearchAccountsRequest;
 
 final class Auth
 {
+    private ServiceClient $customerManagementProxy;
+    private ServiceClient $bulkProxy;
+
     public function __construct(
         private readonly array                   $config,
         private AuthorizationData                $authorizationData,
-        private readonly CustomerManagement      $customerManagement,
-        private ServiceClient                    $customerManagementProxy,
-        private ServiceClient                    $bulkProxy
+        private readonly CustomerManagement      $customerManagement
     ) { }
 
     /**
@@ -29,13 +30,16 @@ final class Auth
      */
     public function authenticate(): void
     {
+        $env = $this->config['api_environment'];
+
         // Authenticate with a Microsoft Account.
         $this->authenticateWithOAuth();
 
         $this->customerManagementProxy = new ServiceClient(
             'CustomerManagementVersion13',
             $this->authorizationData,
-            'Production');
+            $env
+        );
 
         $user = $this->customerManagement->getUser(null, true)->User;
 
@@ -47,13 +51,15 @@ final class Auth
         $this->bulkProxy = new ServiceClient(
             'BulkVersion13',
             $this->authorizationData,
-            'Production');
+            $env
+        );
 
         // Update the proxies with the new authorization data
         $this->customerManagementProxy  = new ServiceClient(
             'CustomerManagementVersion13',
             $this->authorizationData,
-            'Production');
+            $env
+        );
     }
 
     /**

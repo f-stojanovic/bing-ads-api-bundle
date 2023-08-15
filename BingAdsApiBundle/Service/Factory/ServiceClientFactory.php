@@ -53,7 +53,7 @@ class ServiceClientFactory
                 $this->serviceClient,
                 $this->authorizationData
             ),
-            $this->serviceClient, $this->serviceClient);
+        );
 
         return new CustomerListHelper(
             $this->uploadDirectory,

@@ -18,9 +18,11 @@ services:
       $uploadDirectory: '%bing_ads_api.upload_directory%'
 
   Microsoft\BingAds\Auth\ServiceClient:
-    factory: [ '@App\Factory\ServiceClientFactory', 'createServiceClient' ]
+    factory: [ '@Coddict\BingAdsApiBundle\Service\Factory\ServiceClientFactory', 'createServiceClient' ]
 
   Coddict\BingAdsApiBundle\Service\Customer\CustomerListHelper:
-    factory: [ '@App\Factory\ServiceClientFactory', 'createCustomerListHelper' ]
+    factory: [ '@Coddict\BingAdsApiBundle\Service\Factory\ServiceClientFactory', 'createCustomerListHelper' ]
+
+
 
 
