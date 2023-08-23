@@ -7,11 +7,11 @@ use Microsoft\BingAds\Auth\AuthorizationData;
 use Microsoft\BingAds\Auth\ServiceClient;
 use Microsoft\BingAds\V13\CustomerManagement\GetUserRequest;
 
-class CustomerManagement
+final class CustomerManagement
 {
     public function __construct(
-        private readonly ServiceClient $customerManagementProxy,
-        private readonly AuthorizationData $authorizationData
+        public ServiceClient $customerManagementProxy,
+        public AuthorizationData $authorizationData
     ) { }
 
     /**
