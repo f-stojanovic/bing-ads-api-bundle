@@ -14,15 +14,14 @@ use Microsoft\BingAds\V13\CustomerManagement\SearchAccountsRequest;
 
 final class Auth
 {
-    static $CustomerManagementProxy;
-
     static $Proxy;
     static $BulkProxy;
 
     public function __construct(
         private readonly array              $config,
         private readonly AuthorizationData  $authorizationData,
-        private readonly CustomerManagement $customerManagement
+        private readonly CustomerManagement $customerManagement,
+        private ServiceClient $customerManagementProxy,
     ) { }
 
     /**
@@ -36,7 +35,6 @@ final class Auth
         // Set to an empty user identifier to get the current authenticated user,
         // and then search for accounts the user can access.
         $user = $this->customerManagement->getUser(null, true)->User;
-
 
         // To retrieve more than 100 accounts, increase the page size up to 1,000.
         // To retrieve more than 1,000 accounts you'll need to implement paging.
@@ -52,7 +50,7 @@ final class Auth
             $env
         );
 
-        self::$CustomerManagementProxy = new ServiceClient(
+        $this->customerManagementProxy = new ServiceClient(
             ServiceClientType::CustomerManagementVersion13,
             $this->authorizationData,
             $env
@@ -67,7 +65,7 @@ final class Auth
      */
     public function searchAccountsByUserId(string $userId, int $pageIndex, int $pageSize): mixed
     {
-        self::$Proxy = self::$CustomerManagementProxy;
+        self::$Proxy = $this->customerManagementProxy;
 
         // Specify the page index and number of account results per page.
         $pageInfo = new Paging();
@@ -84,7 +82,6 @@ final class Auth
         $request->PageInfo = $pageInfo;
         $request->Predicates = array($predicate);
 
-        return self::$Proxy->GetService()->SearchAccounts($request);
+        return $this->customerManagementProxy->GetService()->SearchAccounts($request);
     }
-
 }

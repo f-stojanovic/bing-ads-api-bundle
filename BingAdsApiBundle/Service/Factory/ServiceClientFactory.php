@@ -64,15 +64,15 @@ class ServiceClientFactory
             new CustomerManagement(
                 $this->serviceClient,
                 $this->authorizationData
-            )
+            ),
+            $this->serviceClient
         );
     }
 
     private function createBulkHelperInstance(): BulkHelper
     {
         return new BulkHelper(
-            $this->authorizationData,
-            $this->serviceClient
+            $this->authorizationData
         );
     }
 

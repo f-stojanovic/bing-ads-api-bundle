@@ -104,13 +104,13 @@ class CustomerListHelper
 
             $bulkFilePath = $this->uploadDirectory . "/emails_to_{$type}.zip";
             $this->compressFile($this->uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
-            
+
             $responseMode = ResponseMode::ErrorsAndResults;
             $uploadResponse = $this->bulkHelper->getBulkUploadUrl(
                 $responseMode,
                 $this->authorizationData->AccountId
             );
-            
+
             $uploadRequestId = $uploadResponse->RequestId;
             $uploadUrl = $uploadResponse->UploadUrl;
 
@@ -118,23 +118,23 @@ class CustomerListHelper
             $this->logger->debug(sprintf("RequestId: %s\r\n", $uploadRequestId));
             $this->logger->debug(sprintf("UploadUrl: %s\r\n", $uploadUrl));
             $this->logger->debug(sprintf("-----\r\nUploading file from %s.\r\n", $bulkFilePath));
-            
+
             $uploadSuccess = $this->uploadFile($uploadUrl, $bulkFilePath);
-            
+
             // If the file was not uploaded, do not continue to poll for results.
             if (!$uploadSuccess){
                 throw new Exception('Upload failed');
                 return;
             }
 
-            $waitTime = 10; 
+            $waitTime = 15;
             // This sample polls every 30 seconds up to 5 minutes.
-            // In production you may poll the status every 1 to 2 minutes for up to one hour.
+            // In production, you may poll the status every 1 to 2 minutes for up to one hour.
             // If the call succeeds, stop polling. If the call or
             // download fails, the call throws a fault.
             for ($i = 0; $i < 5; $i++) {
                 sleep($waitTime);
-                
+
                 // Get the upload request status.
                 $getBulkUploadStatusResponse = $this->bulkHelper->getBulkUploadStatus(
                     $uploadRequestId
@@ -147,13 +147,13 @@ class CustomerListHelper
                 $this->logger->debug(sprintf("RequestId: %s\r\n", $uploadRequestId));
                 $this->logger->debug(sprintf("UploadUrl: %s\r\n", $uploadUrl));
                 $this->logger->debug(sprintf("-----\r\nUploading file from %s.\r\n", $bulkFilePath));
-                
+
                 if ((($requestStatus == "Completed") || ($requestStatus == "CompletedWithErrors"))) {
                     $uploadSuccess = true;
                     break;
                 }
             }
-            
+
             if ($uploadSuccess) {
                 // Get the upload result file.
                 $uploadResultFilePath = $this->uploadDirectory . "/results_{$type}.zip";
@@ -164,9 +164,9 @@ class CustomerListHelper
 
                 $this->logger->debug(sprintf("The upload result file was written to %s.\r\n", $uploadResultFilePath));
 
-                $this->decompressFile($uploadResultFilePath, __DIR__ . "/../storage/results_{$type}.csv");
+                $this->decompressFile($uploadResultFilePath, $this->uploadDirectory . "/results_{$type}.csv");
 
-                $files = glob(__DIR__ . "/../storage/*.csv");
+                $files = glob($this->uploadDirectory . "/../storage/*.csv");
 
                 foreach ($files as $file) {
                     $reader = Reader::createFromPath($file);
@@ -184,7 +184,7 @@ class CustomerListHelper
                     $this->logger->debug("Errors: " . count($errorLines));
 
                     // Move file to archive
-                    rename($file, __DIR__ . '/../storage/archive/' . basename($file));
+                    rename($file, $this->uploadDirectory . '/../storage/archive/' . basename($file));
 
                     // Or if you prefer to delete use this
                     // unlink($file);
@@ -248,28 +248,28 @@ class CustomerListHelper
         if (!$reader = fopen($downloadUrl, 'rb')) {
             throw new Exception("Failed to open URL " . $downloadUrl . ".");
         }
-    
+
         if (!$writer = fopen($filePath, 'wb')) {
             fclose($reader);
             throw new Exception("Failed to create ZIP file " . $filePath . ".");
         }
-    
+
         $bufferSize = 100 * 1024;
-    
+
         while (!feof($reader)) {
             if (false === ($buffer = fread($reader, $bufferSize))) {
                 fclose($reader);
                 fclose($writer);
                 throw new Exception("Read operation from URL failed.");
             }
-    
+
             if (fwrite($writer, $buffer) === false) {
                 fclose($reader);
                 fclose($writer);
                 throw new Exception ("Write operation to ZIP file failed.");
             }
         }
-    
+
         fclose($reader);
         fflush($writer);
         fclose($writer);
@@ -284,21 +284,21 @@ class CustomerListHelper
     private function uploadFile(string $uploadUrl, string $filePath): bool
     {
         $ch = curl_init($uploadUrl);
-    
+
         curl_setopt ($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, 0);
-    
+
         if (!isset($this->authorizationData)) {
             throw new Exception("AuthorizationData is not set.");
         }
-        
+
         // Set the authorization headers.
         if (isset($this->authorizationData->Authentication->Type)) {
             $authorizationHeaders = array();
             $authorizationHeaders[] = "DeveloperToken: " . $this->authorizationData->DeveloperToken;
             $authorizationHeaders[] = "CustomerId: " . $this->authorizationData->CustomerId;
             $authorizationHeaders[] = "CustomerAccountId: " . $this->authorizationData->AccountId;
-            
+
             if (isset($this->authorizationData->Authentication->OAuthTokens)) {
                 $authorizationHeaders[] = "AuthenticationToken: " . $this->authorizationData->Authentication->OAuthTokens->AccessToken;
             }
@@ -306,18 +306,18 @@ class CustomerListHelper
         else {
             throw new Exception("Invalid Authentication Type.");
         }
-    
+
         curl_setopt($ch, CURLOPT_HTTPHEADER, $authorizationHeaders);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_POST, 1);
-    
+
         $file = curl_file_create($filePath, "application/zip", "payload.zip");
         curl_setopt($ch, CURLOPT_POSTFIELDS, array("payload" => $file));
-    
+
         $result = curl_exec($ch);
         $info = curl_getinfo($ch);
         $http_code = $info['http_code'];
-                  
+
         if (curl_errno($ch)) {
             $this->logger->debug("Curl Error: " . curl_error($ch) . "\r\n");
         }
@@ -325,9 +325,9 @@ class CustomerListHelper
             $this->logger->debug("Upload Result:\n" . $result . "\r\n");
             $this->logger->debug("HTTP Result Code:\n" . $http_code . "\r\n");
         }
-                 
+
         curl_close($ch);
-        
+
         if ($http_code == 200){
             return true;
         }

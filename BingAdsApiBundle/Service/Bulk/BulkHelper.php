@@ -2,19 +2,17 @@
 
 namespace Coddict\BingAdsApiBundle\Service\Bulk;
 
+use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
 use Exception;
 use Microsoft\BingAds\Auth\AuthorizationData;
-use Microsoft\BingAds\Auth\ServiceClient;
 use Microsoft\BingAds\V13\Bulk\GetBulkDownloadStatusRequest;
 use Microsoft\BingAds\V13\Bulk\GetBulkUploadStatusRequest;
 use Microsoft\BingAds\V13\Bulk\GetBulkUploadUrlRequest;
-use Microsoft\BingAds\V13\Bulk\ResponseMode;
 
-final class BulkHelper 
+final class BulkHelper
 {
     public function __construct(
-        private readonly AuthorizationData $authorizationData,
-        private readonly ServiceClient     $bulkProxy
+        private readonly AuthorizationData $authorizationData
     ) { }
 
     /**
@@ -24,50 +22,50 @@ final class BulkHelper
      */
     public function getBulkDownloadStatus(string $requestId): mixed
     {
-        $this->bulkProxy->setAuthorizationData($this->authorizationData);
-        $proxy = $this->bulkProxy;
+        Auth::$BulkProxy->SetAuthorizationData($this->authorizationData);
+        Auth::$Proxy = Auth::$BulkProxy;
 
         $request = new GetBulkDownloadStatusRequest();
 
         $request->RequestId = $requestId;
 
-        return $proxy->getService()->getBulkDownloadStatus($request);
+        return Auth::$BulkProxy->GetService()->getBulkDownloadStatus($request);
     }
 
     /**
-     * @param string $requestId
+     * @param  $requestId
      * @return mixed
      * @throws Exception
      */
-    public function getBulkUploadStatus(string $requestId): mixed
+    public function getBulkUploadStatus($requestId): mixed
     {
-        $this->bulkProxy->setAuthorizationData($this->authorizationData);
-        $proxy = $this->bulkProxy;
+        Auth::$BulkProxy->SetAuthorizationData($this->authorizationData);
+        Auth::$Proxy = Auth::$BulkProxy;
 
         $request = new GetBulkUploadStatusRequest();
 
         $request->RequestId = $requestId;
 
-        return $proxy->getService()->getBulkUploadStatus($request);
+        return Auth::$BulkProxy->GetService()->getBulkUploadStatus($request);
     }
 
     /**
-     * @param ResponseMode $responseMode
-     * @param int $accountId
+     * @param $responseMode
+     * @param $accountId
      * @return mixed
      * @throws Exception
      */
-    public function getBulkUploadUrl(ResponseMode $responseMode, int $accountId): mixed
+    public function getBulkUploadUrl($responseMode, $accountId): mixed
     {
-        $this->bulkProxy->setAuthorizationData($this->authorizationData);
-        $proxy = $this->bulkProxy;
+        Auth::$BulkProxy->SetAuthorizationData($this->authorizationData);
+        Auth::$Proxy = Auth::$BulkProxy;
 
         $request = new GetBulkUploadUrlRequest();
 
         $request->ResponseMode = $responseMode;
         $request->AccountId = $accountId;
 
-        return $proxy->getService()->getBulkUploadUrl($request);
+        return Auth::$BulkProxy->GetService()->getBulkUploadUrl($request);
     }
 
     /**
@@ -619,3 +617,4 @@ final class BulkHelper
         $this->outputStatusMessage("* * * End OutputArrayOfInt * * *");
     }
 }
+
