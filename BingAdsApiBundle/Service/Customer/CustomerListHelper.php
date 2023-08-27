@@ -105,7 +105,6 @@ class CustomerListHelper
             $temp = tmpfile();
             $bulkFilePath = stream_get_meta_data($temp)['uri'];
 
-            //$bulkFilePath = $this->uploadDirectory . "/emails_to_{$type}.zip";
             $this->compressFile($this->uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
 
             $responseMode = ResponseMode::ErrorsAndResults;
