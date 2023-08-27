@@ -102,7 +102,10 @@ class CustomerListHelper
             $csv->insertOne($header);
             $csv->insertAll($records);
 
-            $bulkFilePath = $this->uploadDirectory . "/emails_to_{$type}.zip";
+            $temp = tmpfile();
+            $bulkFilePath = stream_get_meta_data($temp)['uri'];
+
+            //$bulkFilePath = $this->uploadDirectory . "/emails_to_{$type}.zip";
             $this->compressFile($this->uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
 
             $responseMode = ResponseMode::ErrorsAndResults;
@@ -156,7 +159,8 @@ class CustomerListHelper
 
             if ($uploadSuccess) {
                 // Get the upload result file.
-                $uploadResultFilePath = $this->uploadDirectory . "/results_{$type}.zip";
+                $resultsTmp = tmpfile();
+                $uploadResultFilePath = stream_get_meta_data($resultsTmp)['uri'];
 
                 $this->logger->debug(sprintf("-----\r\nDownloading the upload result file from %s...\r\n", $resultFileUrl));
 
@@ -194,7 +198,10 @@ class CustomerListHelper
                 throw new Exception("The request is taking longer than expected.\r\n" .
                     "Save the upload ID (%s) and try again later.", $uploadRequestId);
             }
-        } catch (SoapFault|Exception $e) {
+
+            fclose($temp);
+            fclose($resultsTmp);
+        } catch (\SoapFault|Exception $e) {
             throw new Exception("Business logic error occurred: " . $e->getMessage());
         }
     }
