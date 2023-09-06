@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Exception;
+namespace Coddict\BingAdsApiBundle\Exception;
 
 use Exception;
 class RefreshTokenNotFoundException extends Exception
