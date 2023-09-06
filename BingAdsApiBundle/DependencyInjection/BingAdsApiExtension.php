@@ -21,7 +21,6 @@ class BingAdsApiExtension extends Extension
         $container->setParameter('bing_ads_api.client_id', $config['client_id']);
         $container->setParameter('bing_ads_api.client_secret', $config['client_secret']);
         $container->setParameter('bing_ads_api.audience_id', $config['audience_id']);
-        $container->setParameter('bing_ads_api.upload_directory', $config['upload_directory']);
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');

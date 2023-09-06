@@ -24,7 +24,6 @@ class Configuration implements ConfigurationInterface
             ->scalarNode('client_id')->isRequired()->end()
             ->scalarNode('client_secret')->isRequired()->end()
             ->integerNode('audience_id')->isRequired()->end()
-            ->scalarNode('upload_directory')->defaultValue('storage')->end()
             ->end();
 
         return $treeBuilder;

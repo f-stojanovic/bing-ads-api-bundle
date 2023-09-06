@@ -2,11 +2,11 @@
 
 namespace Coddict\BingAdsApiBundle\Service\Factory;
 
+use Coddict\BingAdsApiBundle\Exception\RefreshTokenNotFoundException;
 use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
 use Coddict\BingAdsApiBundle\CustomerManagement;
 use Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper;
 use Coddict\BingAdsApiBundle\Service\Customer\CustomerListHelper;
-use Exception;
 use Microsoft\BingAds\Auth\AuthorizationData;
 use Microsoft\BingAds\Auth\OAuthDesktopMobileAuthCodeGrant;
 use Microsoft\BingAds\Auth\OAuthTokenRequestException;
@@ -21,8 +21,8 @@ class ServiceClientFactory
 
     public function __construct(
         private readonly array  $config,
-        private readonly string $uploadDirectory,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly BingTokenIO $io
     ) {
         $this->authenticateWithOAuth();
         $this->createServiceClient();
@@ -48,7 +48,6 @@ class ServiceClientFactory
         $bulkHelper = $this->createBulkHelperInstance();
 
         return new CustomerListHelper(
-            $this->uploadDirectory,
             $auth,
             $this->authorizationData,
             $bulkHelper,
@@ -76,6 +75,17 @@ class ServiceClientFactory
         );
     }
 
+    /**
+     * You need to provide consent for the application to access your Microsoft Advertising accounts
+     * Copy and paste this authorization endpoint into a web browser and sign in with a Microsoft account
+     * with access to a Microsoft Advertising account: $this->authorizationData->Authentication->getAuthorizationEndpoint()
+     * After you have granted consent in the web browser for the application to access your Microsoft Advertising accounts,
+     * please enter the response URI that includes the authorization 'code' parameter:
+     *
+     * @return void
+     * @throws OAuthTokenRequestException
+     * @throws RefreshTokenNotFoundException
+     */
     public function authenticateWithOAuth(): void
     {
         $authentication = (new OAuthDesktopMobileAuthCodeGrant())
@@ -89,78 +99,18 @@ class ServiceClientFactory
             ->withDeveloperToken($this->config['developer_token']);
 
         try {
-            $refreshToken = $this->readOAuthRefreshToken();
+            $refreshToken = $this->io->readToken();
 
             if ($refreshToken != null)  {
                 $this->authorizationData->Authentication->requestOAuthTokensByRefreshToken($refreshToken);
-                $this->writeOAuthRefreshToken(
-                    $this->authorizationData->Authentication->OAuthTokens->RefreshToken
-                );
+                $this->io->writeToken($this->authorizationData->Authentication->OAuthTokens->RefreshToken);
             }
             else {
-                $this->requestUserConsent();
+                throw new RefreshTokenNotFoundException('The refresh token is invalid.');
             }
         } catch(OAuthTokenRequestException $e) {
-            $this->requestUserConsent();
-        }
-    }
-
-    /**
-     * @return void
-     * @throws Exception
-     */
-    public function requestUserConsent(): void
-    {
-        print "You need to provide consent for the application to access your Microsoft Advertising accounts. " .
-            "Copy and paste this authorization endpoint into a web browser and sign in with a Microsoft account " .
-            "with access to a Microsoft Advertising account: \n\n" . $this->authorizationData->Authentication->getAuthorizationEndpoint() .
-            "\n\nAfter you have granted consent in the web browser for the application to access your Microsoft Advertising accounts, " .
-            "please enter the response URI that includes the authorization 'code' parameter: \n\n";
-
-        $responseUri = fgets(STDIN);
-        print "\n";
-
-        $this->authorizationData->Authentication->requestOAuthTokensByResponseUri(trim($responseUri));
-        $this->writeOAuthRefreshToken($this->authorizationData->Authentication->OAuthTokens->RefreshToken);
-    }
-
-    /**
-     * @return string|null
-     * @throws Exception
-     */
-    public function readOAuthRefreshToken(): ?string
-    {
-        $refreshToken = null;
-
-        if (file_exists($this->config['oauth_refresh_token_path']) && filesize($this->config['oauth_refresh_token_path']) > 0) {
-            $refreshTokenFile = fopen($this->config['oauth_refresh_token_path'], "r");
-            if ($refreshTokenFile !== false) {
-                $refreshToken = fread($refreshTokenFile, filesize($this->config['oauth_refresh_token_path']));
-                fclose($refreshTokenFile);
-            } else {
-                throw new Exception("Failed to open the refresh token file for reading.");
-            }
-        }
-
-        return $refreshToken;
-    }
-
-    /**
-     * @param string $refreshToken
-     * @return void
-     * @throws Exception
-     */
-    public function writeOAuthRefreshToken(string $refreshToken): void
-    {
-        $refreshTokenFile = fopen($this->config['oauth_refresh_token_path'], "wb");
-        if ($refreshTokenFile !== false) {
-            if (fwrite($refreshTokenFile, $refreshToken) === false) {
-                fclose($refreshTokenFile);
-                throw new Exception("Failed to write the refresh token to the file.");
-            }
-            fclose($refreshTokenFile);
-        } else {
-            throw new Exception("Failed to open the refresh token file for writing.");
+            throw (new OAuthTokenRequestException())
+                ->withError( "OAuth token request failed:" . $e->getMessage());
         }
     }
 }
