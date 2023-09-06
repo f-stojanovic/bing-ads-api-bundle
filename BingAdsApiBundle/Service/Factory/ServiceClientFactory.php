@@ -2,6 +2,7 @@
 
 namespace Coddict\BingAdsApiBundle\Service\Factory;
 
+use Coddict\BingAdsApiBundle\DependencyInjection\Interfaces\BingTokenIO;
 use Coddict\BingAdsApiBundle\Exception\RefreshTokenNotFoundException;
 use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
 use Coddict\BingAdsApiBundle\CustomerManagement;

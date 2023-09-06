@@ -20,6 +20,8 @@ services:
   Coddict\BingAdsApiBundle\Service\Customer\CustomerListHelper:
     factory: [ '@Coddict\BingAdsApiBundle\Service\Factory\ServiceClientFactory', 'createCustomerListHelper' ]
 
+  Coddict\BingAdsApiBundle\DependencyInjection\Interfaces\BingTokenIO:
+
 
 
 
