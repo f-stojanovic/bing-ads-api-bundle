@@ -2,21 +2,21 @@
 
 namespace Coddict\BingAdsApiBundle\Service\Customer;
 
+use Coddict\BingAdsApiBundle\Exception\UploadFailedException;
 use Coddict\BingAdsApiBundle\Service\Authentication\Auth;
 use Coddict\BingAdsApiBundle\Service\Bulk\BulkHelper;
 use Coddict\BingAdsApiBundle\SoapFault;
 use Exception;
-use League\Csv\Reader;
 use League\Csv\Writer;
 use Microsoft\BingAds\Auth\AuthorizationData;
 use Microsoft\BingAds\V13\Bulk\ResponseMode;
+use SplTempFileObject;
 use ZipArchive;
 use Psr\Log\LoggerInterface;
 
 class CustomerListHelper
 {
     public function __construct(
-        private readonly string             $uploadDirectory,
         private readonly Auth               $auth,
         private readonly AuthorizationData  $authorizationData,
         private readonly BulkHelper         $bulkHelper,
@@ -98,14 +98,11 @@ class CustomerListHelper
     private function uploadDataToBing(string $type, array $header, array $records): void
     {
         try {
-            $csv = Writer::createFromPath($this->uploadDirectory . "/emails_to_{$type}.csv", 'w');
+            $csv = Writer::createFromFileObject(new SplTempFileObject());
             $csv->insertOne($header);
             $csv->insertAll($records);
 
-            $temp = tmpfile();
-            $bulkFilePath = stream_get_meta_data($temp)['uri'];
-
-            $this->compressFile($this->uploadDirectory . "/emails_to_{$type}.csv", $bulkFilePath);
+            $bulkFilePath = $csv->getPathname();
 
             $responseMode = ResponseMode::ErrorsAndResults;
             $uploadResponse = $this->bulkHelper->getBulkUploadUrl(
@@ -123,85 +120,13 @@ class CustomerListHelper
 
             $uploadSuccess = $this->uploadFile($uploadUrl, $bulkFilePath);
 
-            // If the file was not uploaded, do not continue to poll for results.
             if (!$uploadSuccess){
-                throw new Exception('Upload failed');
+                throw new UploadFailedException('Upload failed');
                 return;
             }
 
-            $waitTime = 15;
-            // This sample polls every 30 seconds up to 5 minutes.
-            // In production, you may poll the status every 1 to 2 minutes for up to one hour.
-            // If the call succeeds, stop polling. If the call or
-            // download fails, the call throws a fault.
-            for ($i = 0; $i < 5; $i++) {
-                sleep($waitTime);
-
-                // Get the upload request status.
-                $getBulkUploadStatusResponse = $this->bulkHelper->getBulkUploadStatus(
-                    $uploadRequestId
-                );
-
-                $requestStatus = $getBulkUploadStatusResponse->RequestStatus;
-                $resultFileUrl = $getBulkUploadStatusResponse->ResultFileUrl;
-
-                $this->logger->debug("-----\r\nGetBulkUploadUrl:\r\n");
-                $this->logger->debug(sprintf("RequestId: %s\r\n", $uploadRequestId));
-                $this->logger->debug(sprintf("UploadUrl: %s\r\n", $uploadUrl));
-                $this->logger->debug(sprintf("-----\r\nUploading file from %s.\r\n", $bulkFilePath));
-
-                if ((($requestStatus == "Completed") || ($requestStatus == "CompletedWithErrors"))) {
-                    $uploadSuccess = true;
-                    break;
-                }
-            }
-
-            if ($uploadSuccess) {
-                // Get the upload result file.
-                $resultsTmp = tmpfile();
-                $uploadResultFilePath = stream_get_meta_data($resultsTmp)['uri'];
-
-                $this->logger->debug(sprintf("-----\r\nDownloading the upload result file from %s...\r\n", $resultFileUrl));
-
-                $this->downloadFile($resultFileUrl, $uploadResultFilePath);
-
-                $this->logger->debug(sprintf("The upload result file was written to %s.\r\n", $uploadResultFilePath));
-
-                $this->decompressFile($uploadResultFilePath, $this->uploadDirectory . "/results_{$type}.csv");
-
-                $files = glob($this->uploadDirectory . "/../storage/*.csv");
-
-                foreach ($files as $file) {
-                    $reader = Reader::createFromPath($file);
-                    $reader->setHeaderOffset(0);
-
-                    $data = $reader->jsonSerialize();
-
-                    array_shift($data);
-
-                    $errorLines = array_filter($data, function ($item) {
-                        return $item['Type'] == 'Customer List Item Error';
-                    }, ARRAY_FILTER_USE_BOTH);
-
-
-                    $this->logger->debug("Errors: " . count($errorLines));
-
-                    // Move file to archive
-                    rename($file, $this->uploadDirectory . '/../storage/archive/' . basename($file));
-
-                    // Or if you prefer to delete use this
-                    // unlink($file);
-                }
-            }
-            else {
-                throw new Exception("The request is taking longer than expected.\r\n" .
-                    "Save the upload ID (%s) and try again later.", $uploadRequestId);
-            }
-
-            fclose($temp);
-            fclose($resultsTmp);
-        } catch (\SoapFault|Exception $e) {
-            throw new Exception("Business logic error occurred: " . $e->getMessage());
+        } catch (\SoapFault $e) {
+            throw new UploadFailedException("An issue occurred while communicating with the Bing API.", 0, $e);
         }
     }
 
@@ -317,9 +242,8 @@ class CustomerListHelper
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_POST, 1);
 
-        $file = curl_file_create($filePath, "application/zip", "payload.zip");
+        $file = curl_file_create($filePath, "text/csv", "payload.csv");
         curl_setopt($ch, CURLOPT_POSTFIELDS, array("payload" => $file));
-
         $result = curl_exec($ch);
         $info = curl_getinfo($ch);
         $http_code = $info['http_code'];
