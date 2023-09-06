@@ -6,5 +6,3 @@ parameters:
   bing_ads_api.audience_id: '%env(int:BING_ADS_AUDIENCE_ID)%'
   bing_ads_api.api_environment: 'Production'
   bing_ads_api.oauth_scope: 'msads_manage'
-  bing_ads_api.upload_directory: '%kernel.cache_dir%/bingads/uploads'
-  bing_ads_api.oauth_refresh_token_path: '%kernel.cache_dir%/bingads/refresh_tokens.txt'
